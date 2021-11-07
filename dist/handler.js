@@ -79,7 +79,6 @@ var registerHandler = function (req, reply) { return __awaiter(void 0, void 0, v
                 return [4 /*yield*/, bcrypt_1.default.hash(pass, 10)];
             case 4:
                 hashedPass = _b.sent();
-                console.log(hashedPass);
                 return [4 /*yield*/, server_1.dbPool.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass, invited_by) VALUES($1, $2, $3, $4, $5, $6) RETURNING id;', [userName, email, storeName, title, hashedPass, 1])];
             case 5:
                 response = _b.sent();
@@ -87,6 +86,7 @@ var registerHandler = function (req, reply) { return __awaiter(void 0, void 0, v
                 return [3 /*break*/, 7];
             case 6:
                 err_1 = _b.sent();
+                // Catch funky errors :-(
                 console.error(err_1);
                 reply.code(400).send({ error: "INTERNAL SERVER ERROR" });
                 return [3 /*break*/, 7];

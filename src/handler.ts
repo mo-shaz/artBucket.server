@@ -30,7 +30,6 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         // If everything checks out, insert a new user into the database
         // Before inserting data into databse, hash the password
         const hashedPass = await bcrypt.hash(pass, 10)
-        console.log(hashedPass)
 
         const response = await dbPool.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass, invited_by) VALUES($1, $2, $3, $4, $5, $6) RETURNING id;', [userName, email, storeName, title, hashedPass, 1])
 
@@ -38,6 +37,7 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
     } catch (err) {
 
+        // Catch funky errors :-(
         console.error(err)
         reply.code(400).send({ error: "INTERNAL SERVER ERROR" })
 
