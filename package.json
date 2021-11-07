@@ -1,0 +1,29 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
+    "build": "tsc src/server.ts",
+    "start": "node dist/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sinclair/typebox": "^0.20.5",
+    "@types/bcrypt": "^5.0.0",
+    "bcrypt": "^5.0.1",
+    "fastify": "^3.23.0",
+    "pg": "^8.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "@types/pg": "^8.6.1",
+    "concurrently": "^6.3.0",
+    "nodemon": "^2.0.14",
+    "typescript": "^4.4.4"
+  }
+}
