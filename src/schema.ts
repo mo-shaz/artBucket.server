@@ -8,7 +8,7 @@ import { Static, Type } from '@sinclair/typebox'
 const registerSchema = Type.Object({
 	userName: Type.String({ minLength: 4, maxLength: 32 }),
 	email: Type.String({ format: 'email' }),
-	title: Type.String({ minLength:4, maxLenght: 32 }),
+	title: Type.Optional(Type.String({  maxLenght: 32 })),
 	storeName: Type.String({ minLength: 4, maxLenght: 32 }),
 	pass: Type.String({ minLenght: 8, maxLength: 32 }),
 	confirmPass: Type.String({ minLenght: 8, maxLength: 32 })

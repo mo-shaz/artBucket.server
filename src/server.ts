@@ -22,20 +22,29 @@ const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = fastify
 })
 
 // Database Config
-export const dbPool = new Pool({
-    host: '127.0.0.1',
-    user: 'postgres',
-    port: 5432,
-    password: 'furygres',
-    database: 'artbucket',
+const dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    port: (process.env.DB_PORT as number | undefined),
+    password: process.env.DB_PW,
+    database: process.env.DB_NAME,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 10000
-})
+}
+
+// Database Connection Pool
+export const dbPool = new Pool(dbConfig)
 
 ///////////////////////////////////////////////////
 //                  PLUGINS                     //
 /////////////////////////////////////////////////
 
+// CORS
+server.register(require('fastify-cors'), {
+    origin: true,
+    methods: ['GET', 'POST'],
+    allowheaders: ['Content-Type', 'Authorization']
+})
 
 
 

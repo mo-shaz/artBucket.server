@@ -13,7 +13,7 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
         // Check if password and confirm-password fields match
         // Already do this on the client side, just to make sure    
-        if (pass !== confirmPass) reply.code(500).send({ error: 'Passwords do not match' })
+        if (pass !== confirmPass) return reply.code(400).send({ error: 'Passwords do not match' })
 
         // Check if the email is already registered
         const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
@@ -39,7 +39,7 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
         // Catch funky errors :-(
         console.error(err)
-        reply.code(400).send({ error: "INTERNAL SERVER ERROR" })
+        reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
 
     }
 }
