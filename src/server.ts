@@ -5,7 +5,7 @@ import fastify, {FastifyInstance} from 'fastify'
 import {IncomingMessage, Server, ServerResponse} from 'http'
 import { Pool } from 'pg'
 
-import { registerHandler } from './handler'
+import { registerHandler, indexHandler } from './handler'
 import { RegisterSchema, RegisterType } from './schema'
 
 
@@ -41,7 +41,7 @@ export const dbPool = new Pool(dbConfig)
 
 // CORS
 server.register(require('fastify-cors'), {
-    origin: true,
+    origin: '*',
     methods: ['GET', 'POST'],
     allowheaders: ['Content-Type', 'Authorization']
 })
@@ -55,7 +55,8 @@ server.register(require('fastify-cors'), {
 // Register a user
 server.post<{ Body: RegisterType }>('/register', RegisterSchema, registerHandler)
 
-
+// Index Page
+server.get('/', indexHandler)
 
 
 

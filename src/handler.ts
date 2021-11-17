@@ -16,16 +16,16 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         if (pass !== confirmPass) return reply.code(400).send({ error: 'Passwords do not match' })
 
         // Check if the email is already registered
-        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
-        if (emailQuery.rows[0].exists === true) return reply.code(400).send({ error: `User with email: ${email} already exists` })
+        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1', [email])
+        if (emailQuery.rows[0].exists === true) return reply.code(400).send({ error: `user with email '${email}' already exists` })
         
         // Check userName availability
-        const userQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE user_name=$1)', [userName])
-        if (userQuery.rows[0].exists === true) return reply.code(400).send({ error: `The username: ${userName} is already taken` })
+        const userQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE user_name=$1', [userName])
+        if (userQuery.rows[0].exists === true) return reply.code(400).send({ error: `the username '${userName}' is already taken` })
 
         // Check storeName availability
-        const storeQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1)', [storeName])
-        if (storeQuery.rows[0].exists === true) return reply.code(400).send({ error: `The storename: ${storeName} is already taken` })
+        const storeQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1', [storeName])
+        if (storeQuery.rows[0].exists === true) return reply.code(400).send({ error: `the storename '${storeName}' is already taken` })
 
         // If everything checks out, insert a new user into the database
         // Before inserting data into databse, hash the password
@@ -37,10 +37,32 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
     } catch (err) {
 
-        // Catch funky errors :-(
+        // Catch funky errors :(
         console.error(err)
-        reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
 
+    }
+}
+
+
+// Index page: to display the number of users
+const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        
+        // Sacred Rituals
+        req = req
+
+        // Get the number of rows of the database
+        const countQuery = await dbPool.query('SELECT COUNT(*) FROM creators;')
+        const count = countQuery.rows[0].count
+        return reply.code(200).send(count)
+        
+        
+    } catch (err) {
+        
+        // No errors please :|
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
 }
 
@@ -49,8 +71,6 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
 
 
-
-
 export {
-    registerHandler
+    registerHandler, indexHandler
 }
