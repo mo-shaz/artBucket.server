@@ -2,34 +2,63 @@ import {FastifyReply, FastifyRequest} from "fastify"
 import bcrypt from 'bcrypt'
 
 import { dbPool } from "./server"
-import {RegisterType} from "./schema"
+import { RegisterType, InviteType } from "./schema"
+
+///////////////////////////////////
+//      Utility Functions       //
+/////////////////////////////////
+
+
+// [[ TEMPORARY ]] Simple cipher algorithm. [[ TEMPORARY ]] //
+// Can be used to both encrypt and decrypt the invite string 
+const cipher = function(message: string, key = 365): string {
+    
+    // Loop through the characters in the message
+    let cipherText = ""
+    let messageLength = message.length
+
+    for (let i = 0; i < messageLength; i++) {
+
+        // Get the character code of the character
+        const charCode = message[i].charCodeAt(0)
+
+        // X-OR with the key
+        const xorCode = charCode ^ key
+
+        // Convert the code to character
+        const cipherChar = String.fromCharCode(xorCode)
+
+        // Push it to the string
+        cipherText += cipherChar
+    }
+
+    return cipherText
+}
+
+
 
 // Registering Users
-const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
     try {
 
-        const { userName, email, title, storeName, pass, confirmPass } = (req.body as RegisterType)
+        const { userName, email, title, storeName, password, confirmPassword } = (req.body as RegisterType)
 
         // Check if password and confirm-password fields match
         // Already do this on the client side, just to make sure    
-        if (pass !== confirmPass) return reply.code(400).send({ error: 'Passwords do not match' })
+        if (password !== confirmPassword) return reply.code(400).send({ error: 'Passwords do not match' })
 
         // Check if the email is already registered
-        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1', [email])
+        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
         if (emailQuery.rows[0].exists === true) return reply.code(400).send({ error: `user with email '${email}' already exists` })
         
-        // Check userName availability
-        const userQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE user_name=$1', [userName])
-        if (userQuery.rows[0].exists === true) return reply.code(400).send({ error: `the username '${userName}' is already taken` })
-
         // Check storeName availability
-        const storeQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1', [storeName])
+        const storeQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1)', [storeName])
         if (storeQuery.rows[0].exists === true) return reply.code(400).send({ error: `the storename '${storeName}' is already taken` })
 
         // If everything checks out, insert a new user into the database
         // Before inserting data into databse, hash the password
-        const hashedPass = await bcrypt.hash(pass, 10)
+        const hashedPass = await bcrypt.hash(password, 10)
 
         const response = await dbPool.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass, invited_by) VALUES($1, $2, $3, $4, $5, $6) RETURNING id;', [userName, email, storeName, title, hashedPass, 1])
 
@@ -46,7 +75,7 @@ const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
 
 // Index page: to display the number of users
-const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+export const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
         
         // Sacred Rituals
@@ -67,10 +96,23 @@ const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 }
 
 
+// Invite page: to send an unhashed response
+export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
 
+        // Get the hashed code from the request body
+        const { emailInvite } = (req.body as InviteType)
 
+        // Decrypt the encrypted invite code
+        const decipher = cipher(emailInvite)
 
+        // Return the deciphered value
+        return reply.code(200).send({ emailInvite: decipher })
 
-export {
-    registerHandler, indexHandler
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERRROR" })
+    }
+
 }

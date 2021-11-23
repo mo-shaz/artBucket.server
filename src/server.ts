@@ -1,3 +1,6 @@
+// Dotenv config
+require('dotenv').config()
+
 ///////////////////////////////////////////////
 //              MODULE IMPORTS              //
 /////////////////////////////////////////////
@@ -5,8 +8,8 @@ import fastify, {FastifyInstance} from 'fastify'
 import {IncomingMessage, Server, ServerResponse} from 'http'
 import { Pool } from 'pg'
 
-import { registerHandler, indexHandler } from './handler'
-import { RegisterSchema, RegisterType } from './schema'
+import { registerHandler, indexHandler, inviteHandler } from './handler'
+import { RegisterSchema, RegisterType , InviteSchema} from './schema'
 
 
 
@@ -48,6 +51,7 @@ server.register(require('fastify-cors'), {
 
 
 
+
 /////////////////////////////////////////////////
 //                  ROUTES                    //
 ///////////////////////////////////////////////
@@ -58,6 +62,8 @@ server.post<{ Body: RegisterType }>('/register', RegisterSchema, registerHandler
 // Index Page
 server.get('/', indexHandler)
 
+// Invite
+server.post('/invite', InviteSchema, inviteHandler)
 
 
 ///////////////////////////////////////////////
