@@ -8,9 +8,8 @@ import fastify, {FastifyInstance} from 'fastify'
 import {IncomingMessage, Server, ServerResponse} from 'http'
 import { Pool } from 'pg'
 
-import { registerHandler, indexHandler, inviteHandler } from './handler'
-import { RegisterSchema, RegisterType , InviteSchema} from './schema'
-
+import { registerHandler, indexHandler, inviteHandler, loginHandler } from './handler'
+import { RegisterSchema, RegisterType , InviteSchema, LoginSchema} from './schema'
 
 
 ///////////////////////////////////////////////
@@ -56,14 +55,17 @@ server.register(require('fastify-cors'), {
 //                  ROUTES                    //
 ///////////////////////////////////////////////
 
-// Register a user
-server.post<{ Body: RegisterType }>('/register', RegisterSchema, registerHandler)
-
 // Index Page
 server.get('/', indexHandler)
 
 // Invite
 server.post('/invite', InviteSchema, inviteHandler)
+
+// Register a user
+server.post<{ Body: RegisterType }>('/register', RegisterSchema, registerHandler)
+
+// Login a user
+server.post('/login', LoginSchema, loginHandler)
 
 
 ///////////////////////////////////////////////

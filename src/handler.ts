@@ -2,7 +2,7 @@ import {FastifyReply, FastifyRequest} from "fastify"
 import bcrypt from 'bcrypt'
 
 import { dbPool } from "./server"
-import { RegisterType, InviteType } from "./schema"
+import { RegisterType, InviteType, LoginType } from "./schema"
 
 ///////////////////////////////////
 //      Utility Functions       //
@@ -100,7 +100,7 @@ export const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
 
-        // Get the hashed code from the request body
+        // Get the code from the request body
         const { emailInvite } = (req.body as InviteType)
 
         // Decrypt the encrypted invite code
@@ -115,4 +115,34 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
         return reply.code(500).send({ error: "INTERNAL SERVER ERRROR" })
     }
 
+}
+
+
+// Login Page
+export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    
+    try {
+
+        // Dismantle the body (x x)
+        const { email, password } = (req.body as LoginType)
+
+        // Check if the email exists
+        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
+        if (emailQuery.rows[0].exists === false ) return reply.code(400).send({ error: "invalid email or password" })
+
+        // Check if the password is correct
+        // Get the password hash from the DB
+        const hashQuery = await dbPool.query('SELECT hashed_pass FROM creators WHERE email=$1', [email])
+        const hashedPass = hashQuery.rows[0].hashed_pass
+
+        // Check it
+        const checkFlag = await bcrypt.compare(password, hashedPass)
+        if (!checkFlag) return reply.code(400).send({ error: "invalid username or password" })
+        return reply.code(200).send({ success: "login successful" })
+
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
 }

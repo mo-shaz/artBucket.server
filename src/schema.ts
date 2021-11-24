@@ -1,5 +1,21 @@
 import { Static, Type } from '@sinclair/typebox'
 
+
+//////////////////////
+// Utility Schemas //
+// /////////////////
+
+// Success Response
+const yaySchema = Type.Object({
+    success: Type.String()
+}, { additionalProperties: false }) 
+
+// Error Response 
+const naySchema = Type.Object({
+    error: Type.String()
+}, { additionalProperties: false }) 
+
+
 ///////////////////////////////////////////////////////
 //                  REGISTER USER                   //
 /////////////////////////////////////////////////////
@@ -19,7 +35,9 @@ export const RegisterSchema: object = {
     schema: {
         body: registerSchema,
         response: {
-            200: registerSchema
+            201: yaySchema,
+            400: naySchema,
+            500: naySchema
         }
     }
 }
@@ -42,7 +60,9 @@ export const InviteSchema = {
     schema: {
         body: inviteSchema,
         response: {
-            200: inviteSchema
+            200: inviteSchema,
+            400: naySchema,
+            500: naySchema
         }
     }
 }
@@ -53,7 +73,27 @@ export type InviteType = Static<typeof inviteSchema>
 
 
 
+///////////////////////////////////////////////////
+//                  LOGIN USER                  //
+/////////////////////////////////////////////////
 
+// TypeBox Schema
+const loginSchema = Type.Object({
+    email: Type.String({ format: 'email' }),
+    password: Type.String({ minLength: 8, maxLength: 32 })
+}, { additionalProperties: false })
 
+// Fatify Route Schema
+export const LoginSchema = {
+    schema: {
+        body: loginSchema,
+        response: {
+            200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
 
-
+// TypeScript Type
+export type LoginType = Static<typeof loginSchema>
