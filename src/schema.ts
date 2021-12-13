@@ -51,16 +51,16 @@ export type RegisterType = Static<typeof registerSchema>
 /////////////////////////////////////////////////////
 
 // TypeBox Schema
-const inviteSchema = Type.Object({
+const joinSchema = Type.Object({
     emailInvite: Type.String({ minLength: 4, maxLength: 32 })
 }, { additionalProperties: false })
 
 // Fastify Route Schema
-export const InviteSchema = {
+export const JoinSchema = {
     schema: {
-        body: inviteSchema,
+        body: joinSchema,
         response: {
-            200: inviteSchema,
+            200: joinSchema,
             400: naySchema,
             500: naySchema
         }
@@ -68,7 +68,7 @@ export const InviteSchema = {
 }
 
 // TypeScript Type
-export type InviteType = Static<typeof inviteSchema>
+export type JoinType = Static<typeof joinSchema>
 
 
 
@@ -97,3 +97,88 @@ export const LoginSchema = {
 
 // TypeScript Type
 export type LoginType = Static<typeof loginSchema>
+
+
+
+/////////////////////////////////////////////////////
+//                      INDEX                     // 
+///////////////////////////////////////////////////
+
+// Fastify Schema
+export const IndexSchema = {
+    schema: {
+        response: {
+            200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+/////////////////////////////////////////////////////
+//                    DASHBOARD                   // 
+///////////////////////////////////////////////////
+
+// TypeBox Schemas
+const dashSchema = Type.Object({
+    success: Type.Object({
+        userName: Type.String({ minLength: 3, maxLenght: 32 }),
+        storeName: Type.String({ minLength:3, maxLength: 32 }),
+        title: Type.Optional(Type.String({ maxLength: 32 })),
+        whatsapp: Type.String(),
+        instagram: Type.String(),
+        products: Type.Array(Type.Object({ id: Type.Number(), image: Type.String() }))
+    }, { additionalProperties: false }) 
+}, { additionalProperties: false })
+
+// Fastify Route Schema
+export const DashSchema = {
+    schema: {
+        response: {
+            200: dashSchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+
+/////////////////////////////////////////////////////
+//                      LOGOUT                    // 
+///////////////////////////////////////////////////
+
+// Fastify Route Schema
+export const LogoutSchema = {
+    schema: {
+        response: {
+            200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+
+///////////////////////////////////////////////////
+//                  INVITE USER                 //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const inviteSchema = Type.Object({
+    inviteEmail: Type.String({ format: 'email' })
+}, { additionalProperties: false })
+
+// Fastify Route Schema
+export const InviteSchema = {
+    schema: {
+        body: inviteSchema,
+        response: {
+            200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+// TypeScript Type
+export type InviteType = Static<typeof inviteSchema>

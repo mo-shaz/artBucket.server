@@ -7,9 +7,11 @@ require('dotenv').config()
 import fastify, {FastifyInstance} from 'fastify'
 import {IncomingMessage, Server, ServerResponse} from 'http'
 import { Pool } from 'pg'
+import cookie from 'fastify-cookie'
+import session from '@fastify/session'
 
-import { registerHandler, indexHandler, inviteHandler, loginHandler } from './handler'
-import { RegisterSchema, RegisterType , InviteSchema, LoginSchema} from './schema'
+import { registerHandler, indexHandler, joinHandler, loginHandler, logoutHandler, dashHandler, inviteHandler } from './handler'
+import { IndexSchema, RegisterSchema, RegisterType , JoinSchema, LoginSchema, LogoutSchema, DashSchema, InviteSchema } from './schema'
 
 
 ///////////////////////////////////////////////
@@ -43,12 +45,19 @@ export const dbPool = new Pool(dbConfig)
 
 // CORS
 server.register(require('fastify-cors'), {
-    origin: '*',
-    methods: ['GET', 'POST'],
-    allowheaders: ['Content-Type', 'Authorization']
+    origin: true,
+    methods: ['GET', 'POST', 'PUT'],
+    credentials: true
 })
 
+// COOKIE AND SESSION
+server.register(cookie)
 
+server.register(session, {
+    cookieName: 'sessionId',
+    secret: (process.env.SESSION_SECRET as string),
+    cookie: { secure: false, maxAge: 604800000, httpOnly: true}
+})
 
 
 /////////////////////////////////////////////////
@@ -56,16 +65,25 @@ server.register(require('fastify-cors'), {
 ///////////////////////////////////////////////
 
 // Index Page
-server.get('/', indexHandler)
+server.get('/', IndexSchema, indexHandler)
 
 // Invite
-server.post('/invite', InviteSchema, inviteHandler)
+server.post('/join', JoinSchema, joinHandler)
 
 // Register a user
 server.post<{ Body: RegisterType }>('/register', RegisterSchema, registerHandler)
 
 // Login a user
 server.post('/login', LoginSchema, loginHandler)
+
+// Logout a user
+server.get('/logout', LogoutSchema,logoutHandler)
+
+// Dashbord Info
+server.get('/dashboard', DashSchema, dashHandler)
+
+// Sending Invites
+server.post('/invite', InviteSchema, inviteHandler)
 
 
 ///////////////////////////////////////////////
@@ -75,10 +93,12 @@ server.post('/login', LoginSchema, loginHandler)
 const startServer = async () => {
     server.listen(8080, (err, address) => {
         if (err) {
-        console.error(err)
-        process.exit(1)
+
+            console.error(err)
+            process.exit(1)
         }
-    console.log(`Server listening at ${address}`)
+
+        console.log(`Server listening at ${address}`)
     })
 }
 

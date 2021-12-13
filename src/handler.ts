@@ -2,42 +2,13 @@ import {FastifyReply, FastifyRequest} from "fastify"
 import bcrypt from 'bcrypt'
 
 import { dbPool } from "./server"
-import { RegisterType, InviteType, LoginType } from "./schema"
-
-///////////////////////////////////
-//      Utility Functions       //
-/////////////////////////////////
+import { RegisterType, JoinType, LoginType, InviteType } from "./schema"
 
 
-// [[ TEMPORARY ]] Simple cipher algorithm. [[ TEMPORARY ]] //
-// Can be used to both encrypt and decrypt the invite string 
-const cipher = function(message: string, key = 365): string {
-    
-    // Loop through the characters in the message
-    let cipherText = ""
-    let messageLength = message.length
+///////////////////////////////////////////////////////////////
+//                      REGISTER A USER                     //
+/////////////////////////////////////////////////////////////
 
-    for (let i = 0; i < messageLength; i++) {
-
-        // Get the character code of the character
-        const charCode = message[i].charCodeAt(0)
-
-        // X-OR with the key
-        const xorCode = charCode ^ key
-
-        // Convert the code to character
-        const cipherChar = String.fromCharCode(xorCode)
-
-        // Push it to the string
-        cipherText += cipherChar
-    }
-
-    return cipherText
-}
-
-
-
-// Registering Users
 export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
     try {
@@ -48,19 +19,37 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         // Already do this on the client side, just to make sure    
         if (password !== confirmPassword) return reply.code(400).send({ error: 'Passwords do not match' })
 
+        // Grab a client from the dbPool (this is good for performance reasons)
+        const client = await dbPool.connect()
+
         // Check if the email is already registered
-        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
-        if (emailQuery.rows[0].exists === true) return reply.code(400).send({ error: `user with email '${email}' already exists` })
+        const emailQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
+
+        if (emailQuery.rows[0].exists === true) {
+            // release the client [IMPORTANT]
+            client.release()
+
+            return reply.code(400).send({ error: `user with email '${email}' already exists` })
+        }
         
         // Check storeName availability
-        const storeQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1)', [storeName])
-        if (storeQuery.rows[0].exists === true) return reply.code(400).send({ error: `the storename '${storeName}' is already taken` })
+        const storeQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1)', [storeName])
+
+        if (storeQuery.rows[0].exists === true) {
+            // release the client [IMPORTANT]
+            client.release()
+
+            return reply.code(400).send({ error: `the storename '${storeName}' is already taken` })
+        }
 
         // If everything checks out, insert a new user into the database
         // Before inserting data into databse, hash the password
         const hashedPass = await bcrypt.hash(password, 10)
 
-        const response = await dbPool.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass, invited_by) VALUES($1, $2, $3, $4, $5, $6) RETURNING id;', [userName, email, storeName, title, hashedPass, 1])
+        const response = await client.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass) VALUES($1, $2, $3, $4, $5) RETURNING id;', [userName, email, storeName, title, hashedPass])
+
+        // Release the client finally
+        client.release()
 
         reply.code(201).send({ success: `UserId: ${response.rows[0].id}` })
 
@@ -74,7 +63,10 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
 }
 
 
-// Index page: to display the number of users
+///////////////////////////////////////////////////////////////
+//                      INDEX ENDPOINT                      //
+/////////////////////////////////////////////////////////////
+
 export const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
         
@@ -83,8 +75,8 @@ export const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 
         // Get the number of rows of the database
         const countQuery = await dbPool.query('SELECT COUNT(*) FROM creators;')
-        const count = countQuery.rows[0].count
-        return reply.code(200).send(count)
+        const count = countQuery.rows[0].count.toString()
+        return reply.code(200).send({ success: count })
         
         
     } catch (err) {
@@ -96,18 +88,21 @@ export const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 }
 
 
-// Invite page: to send an unhashed response
-export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+///////////////////////////////////////////////////////////////
+//                      JOIN ENDPOINT                       //
+/////////////////////////////////////////////////////////////
+
+export const joinHandler = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
 
         // Get the code from the request body
-        const { emailInvite } = (req.body as InviteType)
+        const { emailInvite } = (req.body as JoinType)
 
-        // Decrypt the encrypted invite code
-        const decipher = cipher(emailInvite)
+        // Decode the encoded invite code
+        const dCode = Buffer.from(emailInvite, 'base64').toString('ascii') 
 
-        // Return the deciphered value
-        return reply.code(200).send({ emailInvite: decipher })
+        // Return the decoded value
+        return reply.code(200).send({ emailInvite: dCode })
 
     } catch (err) {
 
@@ -118,7 +113,10 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
 }
 
 
-// Login Page
+///////////////////////////////////////////////////////////////
+//                      LOGIN ENDPOINT                      //
+/////////////////////////////////////////////////////////////
+
 export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => {
     
     try {
@@ -126,23 +124,154 @@ export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         // Dismantle the body (x x)
         const { email, password } = (req.body as LoginType)
 
+        // Grab a client from the dbPool (this is good for performance reasons)
+        const client = await dbPool.connect()
+
         // Check if the email exists
-        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
-        if (emailQuery.rows[0].exists === false ) return reply.code(400).send({ error: "invalid email or password" })
+        const emailQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
+
+        if (emailQuery.rows[0].exists === false ) {
+            // release the client [IMPORTANT]
+            client.release()
+
+            return reply.code(400).send({ error: "invalid email or password" })
+        }
 
         // Check if the password is correct
         // Get the password hash from the DB
-        const hashQuery = await dbPool.query('SELECT hashed_pass FROM creators WHERE email=$1', [email])
+        const hashQuery = await client.query('SELECT hashed_pass FROM creators WHERE email=$1', [email])
         const hashedPass = hashQuery.rows[0].hashed_pass
 
         // Check it
         const checkFlag = await bcrypt.compare(password, hashedPass)
-        if (!checkFlag) return reply.code(400).send({ error: "invalid username or password" })
-        return reply.code(200).send({ success: "login successful" })
+        if (!checkFlag) {
+            // release the client [IMPORTANT]
+            client.release()
+
+            return reply.code(400).send({ error: "invalid email or password" })
+        }
+
+        // If everything checks out okay
+        // Set the session header
+        req.session.authenticated = true
+        
+        // Save the sessionId in the database
+        const { sessionId } = req.session
+        await client.query('UPDATE creators SET session_id=$1 WHERE email=$2', [sessionId, email])
+
+        // Release the client finally
+        client.release()
+
+        // Send a success reply
+        return reply.send({ success: "login successful" })
 
     } catch (err) {
 
         console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+}
+
+
+///////////////////////////////////////////////////////////////
+//                      LOGOUT ENDPOINT                     //
+/////////////////////////////////////////////////////////////
+
+export const logoutHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    // Check if authenticated
+    if (req.session.authenticated) {
+        req.destroySession((err) => {
+            if (err) return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+            return reply.code(200).send({ success: "UNAUTHENTICATED" })
+        })
+
+    } else {
+        // if authenticated, just send an OK status
+        return reply.code(200).send({ success: "UNAUTHENTICATED" })
+    } 
+}
+
+
+///////////////////////////////////////////////////////////////////
+//                      DASHBOARD ENDPOINT                      //
+/////////////////////////////////////////////////////////////////
+
+export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // Check if the user is authenticated
+        if (!req.session.authenticated) return reply.code(400).send({ error: 'redirect to /login' })
+        
+        // The sessionId
+        const { sessionId } = await req.session
+
+        // Grab a client from the dbPool
+        const client = await dbPool.connect()
+
+        // Get the details from the database
+        const dashQuery = await client.query('SELECT user_name, store_name, title, whatsapp, instagram FROM creators WHERE session_id=$1', [sessionId])
+        const data = await dashQuery.rows[0]
+
+        // Get the product list
+        const { store_name } = data
+        const productQuery = await client.query('SELECT id, image FROM products WHERE store_id=$1', [store_name])
+        const productList = productQuery.rows
+
+        // Finally, release the client
+        client.release()
+
+        // Construct a response data
+        const resData = {
+            userName: data.user_name,
+            storeName: data.store_name,
+            title: data.title,
+            whatsapp: data.whatsapp,
+            instagram: data.instagram,
+            products: productList
+        }
+
+        return reply.code(200).send({ success: resData })
+
+    } catch (err) {
+
+        // Please no
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}
+
+
+///////////////////////////////////////////////////////////////////
+//                      INVITES ENDPOINT                        //
+/////////////////////////////////////////////////////////////////
+
+export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+        // check authentication ofcouse :D
+        if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
+        
+        // get the body
+        const { inviteEmail } = (req.body as InviteType)
+
+        // check if the email is aleady registered
+        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [inviteEmail])
+
+        // if exists, return a reply
+        if (emailQuery.rows[0].exists) return reply.code(400).send({ error: "user is already registered" })
+
+        /*
+         *                      NODE-MAILER STUFF
+         *                        FIGURE IT OUT                     */
+
+        // if everything checks out, send confirmation back
+        return reply.code(200).send({ success: "invite send successfully" })
+
+    } catch (err) {
+        console.log(err)
         return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
 }
