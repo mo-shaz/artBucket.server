@@ -3,7 +3,7 @@ import { Static, Type } from '@sinclair/typebox'
 
 //////////////////////
 // Utility Schemas //
-// /////////////////
+////////////////////
 
 // Success Response
 const yaySchema = Type.Object({
@@ -122,11 +122,13 @@ export const IndexSchema = {
 // TypeBox Schemas
 const dashSchema = Type.Object({
     success: Type.Object({
+        id: Type.Number(),
         userName: Type.String({ minLength: 3, maxLenght: 32 }),
         storeName: Type.String({ minLength:3, maxLength: 32 }),
         title: Type.Optional(Type.String({ maxLength: 32 })),
-        whatsapp: Type.String(),
-        instagram: Type.String(),
+        whatsapp: Type.String({ minLenght: 8, maxLength: 15 }),
+        instagram: Type.String({ minLength: 3, maxLength: 32 }),
+        profile: Type.String(),
         products: Type.Array(Type.Object({ id: Type.Number(), image: Type.String() }))
     }, { additionalProperties: false }) 
 }, { additionalProperties: false })
@@ -165,7 +167,8 @@ export const LogoutSchema = {
 
 // TypeBox Schema
 const inviteSchema = Type.Object({
-    inviteEmail: Type.String({ format: 'email' })
+    inviteEmail: Type.String({ format: 'email' }),
+    invitedBy: Type.String({ minLength: 3, maxLength: 32 })
 }, { additionalProperties: false })
 
 // Fastify Route Schema

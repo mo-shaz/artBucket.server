@@ -1,9 +1,54 @@
 import {FastifyReply, FastifyRequest} from "fastify"
-import bcrypt from 'bcrypt'
+import bcrypt from "bcrypt"
+import mailer from "nodemailer"
+
 
 import { dbPool } from "./server"
 import { RegisterType, JoinType, LoginType, InviteType } from "./schema"
 
+
+///////////////////////////////////
+//      UTILITY FUNCTIONS       //
+/////////////////////////////////
+
+// additional request body interface
+interface ImageUploadRequest extends FastifyRequest {
+    body: {
+        productId: number;
+        profileId: number;
+    }
+}
+
+// function that changes the file-name of the image according to the user
+export const getFileName = async (req: ImageUploadRequest) => {
+    
+    req.body
+
+    // the file-name to be returned
+    let fileName: string
+
+    // if it is a profile picture
+    if (req.body.profileId) {
+        
+        const theId = req.body.profileId
+
+        // construct the file-name
+        fileName = `profile_${theId}`
+    
+    } else if (req.body.productId) {
+
+        const theId = req.body.productId
+        fileName = `product_${theId}`
+
+    } else {
+
+        return 'aCuriousGuy'
+    }
+
+
+    return fileName
+    
+}
 
 ///////////////////////////////////////////////////////////////
 //                      REGISTER A USER                     //
@@ -211,7 +256,7 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         const client = await dbPool.connect()
 
         // Get the details from the database
-        const dashQuery = await client.query('SELECT user_name, store_name, title, whatsapp, instagram FROM creators WHERE session_id=$1', [sessionId])
+        const dashQuery = await client.query('SELECT id, user_name, store_name, title, whatsapp, instagram, profile FROM creators WHERE session_id=$1', [sessionId])
         const data = await dashQuery.rows[0]
 
         // Get the product list
@@ -224,11 +269,13 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
 
         // Construct a response data
         const resData = {
+            id: data.id,
             userName: data.user_name,
             storeName: data.store_name,
             title: data.title,
             whatsapp: data.whatsapp,
             instagram: data.instagram,
+            profile: data.profile,
             products: productList
         }
 
@@ -255,7 +302,7 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
         if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
         
         // get the body
-        const { inviteEmail } = (req.body as InviteType)
+        const { inviteEmail, invitedBy } = (req.body as InviteType)
 
         // check if the email is aleady registered
         const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [inviteEmail])
@@ -263,15 +310,69 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
         // if exists, return a reply
         if (emailQuery.rows[0].exists) return reply.code(400).send({ error: "user is already registered" })
 
-        /*
-         *                      NODE-MAILER STUFF
-         *                        FIGURE IT OUT                     */
+        // Now send the invite e-mail 
+        // NodeMailer transport
+        const transporter = mailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.MAILER_USER,
+                pass: process.env.MAILER_PASS
+            }
+        })
+
+        // Generate an ivite code (I just encode the email in base64 :p)
+        const code = Buffer.from(`${inviteEmail}`).toString('base64') 
+
+        // The email-text to be send
+        const theMessage = `Hello ${inviteEmail}, you got an invite from ${invitedBy} to join artBucket.com. Use this code: ${code} to create an account. Have fun.`
+
+        // The whole mail
+        const theMail = {
+            from: process.env.MAILER_USER,
+            to: inviteEmail,
+            subject: 'artBucket invite',
+            text: theMessage
+        }
+
+        // Send the mail
+        const responseFromMailServer = await transporter.sendMail(theMail)
+        console.log(responseFromMailServer.response)
 
         // if everything checks out, send confirmation back
         return reply.code(200).send({ success: "invite send successfully" })
 
     } catch (err) {
+
         console.log(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+}
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     IMAGE-UPLOAD ENDPOINT                    //
+/////////////////////////////////////////////////////////////////
+
+export const imageHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    
+    try {
+
+        // check if the user is authenticated
+        if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
+
+        // get the url of the image
+        const imageUrl = req.file.path
+
+        // add the url to the database
+        const { sessionId } = req.session
+        await dbPool.query('UPDATE creators SET profile=$1 WHERE session_id=$2', [imageUrl, sessionId])
+
+        return reply.code(200).send({ success: "UPLOAD COMPLETED" })
+
+    } catch (err) {
+
+        console.error(err)
         return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
 }

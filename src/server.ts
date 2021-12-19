@@ -4,15 +4,28 @@ require('dotenv').config()
 ///////////////////////////////////////////////
 //              MODULE IMPORTS              //
 /////////////////////////////////////////////
-import fastify, {FastifyInstance} from 'fastify'
+import fastify, { FastifyInstance } from 'fastify'
+import { File } from 'fastify-multer/lib/interfaces'
 import {IncomingMessage, Server, ServerResponse} from 'http'
 import { Pool } from 'pg'
 import cookie from 'fastify-cookie'
 import session from '@fastify/session'
 
-import { registerHandler, indexHandler, joinHandler, loginHandler, logoutHandler, dashHandler, inviteHandler } from './handler'
+// I HATE TO DO THIS //
+const multer = require('fastify-multer')
+const cloudinary = require('cloudinary').v2
+const { CloudinaryStorage } = require('multer-storage-cloudinary')
+// PLEASE FIND A WAY //
+
+import { registerHandler, indexHandler, joinHandler, loginHandler, logoutHandler, dashHandler, inviteHandler, imageHandler, getFileName } from './handler'
 import { IndexSchema, RegisterSchema, RegisterType , JoinSchema, LoginSchema, LogoutSchema, DashSchema, InviteSchema } from './schema'
 
+// Additional Interface fixes
+declare module 'fastify' {
+    export interface FastifyRequest {
+        file: File;
+    }
+}
 
 ///////////////////////////////////////////////
 //                  CONFIG                  //
@@ -39,6 +52,26 @@ const dbConfig = {
 // Database Connection Pool
 export const dbPool = new Pool(dbConfig)
 
+// Cloudinary-Storage Config
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: "Test-Pix",
+        public_id: getFileName,
+        allowed_formats: ['png', 'jpg', 'svg', 'bmp']
+    },
+})
+
+// Multer Config
+const upload = multer({ storage: storage })
+
+// Cloudinary Config
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_KEY,
+    api_secret: process.env.CLOUD_SECRET
+})
+
 ///////////////////////////////////////////////////
 //                  PLUGINS                     //
 /////////////////////////////////////////////////
@@ -59,6 +92,8 @@ server.register(session, {
     cookie: { secure: false, maxAge: 604800000, httpOnly: true}
 })
 
+// MULTER
+server.register(multer.contentParser)
 
 /////////////////////////////////////////////////
 //                  ROUTES                    //
@@ -84,6 +119,9 @@ server.get('/dashboard', DashSchema, dashHandler)
 
 // Sending Invites
 server.post('/invite', InviteSchema, inviteHandler)
+
+// Image Uploads
+server.post('/image', { preHandler: upload.single('file') }, imageHandler)
 
 
 ///////////////////////////////////////////////
