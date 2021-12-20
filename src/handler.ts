@@ -368,7 +368,7 @@ export const imageHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         const { sessionId } = req.session
         await dbPool.query('UPDATE creators SET profile=$1 WHERE session_id=$2', [imageUrl, sessionId])
 
-        return reply.code(200).send({ success: "UPLOAD COMPLETED" })
+        return reply.code(200).send({ success: imageUrl })
 
     } catch (err) {
 
