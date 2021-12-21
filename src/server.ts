@@ -17,8 +17,28 @@ const cloudinary = require('cloudinary').v2
 const { CloudinaryStorage } = require('multer-storage-cloudinary')
 // PLEASE FIND A WAY //
 
-import { registerHandler, indexHandler, joinHandler, loginHandler, logoutHandler, dashHandler, inviteHandler, imageHandler, getFileName } from './handler'
-import { IndexSchema, RegisterSchema, RegisterType , JoinSchema, LoginSchema, LogoutSchema, DashSchema, InviteSchema } from './schema'
+import { 
+    registerHandler, 
+    indexHandler, 
+    joinHandler, 
+    loginHandler, 
+    logoutHandler,
+    dashHandler, 
+    inviteHandler,
+    imageHandler,
+    getFileName,
+    profileHandler
+    } from './handler'
+
+import { IndexSchema, 
+    RegisterSchema, 
+    JoinSchema, 
+    LoginSchema,
+    LogoutSchema,
+    DashSchema,
+    InviteSchema,
+    ProfileSchema
+    } from './schema'
 
 // Additional Interface fixes
 declare module 'fastify' {
@@ -106,7 +126,7 @@ server.get('/', IndexSchema, indexHandler)
 server.post('/join', JoinSchema, joinHandler)
 
 // Register a user
-server.post<{ Body: RegisterType }>('/register', RegisterSchema, registerHandler)
+server.post('/register', RegisterSchema, registerHandler)
 
 // Login a user
 server.post('/login', LoginSchema, loginHandler)
@@ -122,6 +142,9 @@ server.post('/invite', InviteSchema, inviteHandler)
 
 // Image Uploads
 server.post('/image', { preHandler: upload.single('file') }, imageHandler)
+
+// Edit Profile
+server.post('/profile', ProfileSchema, profileHandler)
 
 
 ///////////////////////////////////////////////

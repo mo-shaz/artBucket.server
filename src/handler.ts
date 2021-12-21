@@ -4,7 +4,7 @@ import mailer from "nodemailer"
 
 
 import { dbPool } from "./server"
-import { RegisterType, JoinType, LoginType, InviteType } from "./schema"
+import { RegisterType, JoinType, LoginType, InviteType, ProfileType } from "./schema"
 
 
 ///////////////////////////////////
@@ -68,7 +68,7 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         const client = await dbPool.connect()
 
         // Check if the email is already registered
-        const emailQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
+        const emailQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1);', [email])
 
         if (emailQuery.rows[0].exists === true) {
             // release the client [IMPORTANT]
@@ -78,7 +78,7 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         }
         
         // Check storeName availability
-        const storeQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1)', [storeName])
+        const storeQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE store_name=$1);', [storeName])
 
         if (storeQuery.rows[0].exists === true) {
             // release the client [IMPORTANT]
@@ -91,7 +91,12 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         // Before inserting data into databse, hash the password
         const hashedPass = await bcrypt.hash(password, 10)
 
-        const response = await client.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass) VALUES($1, $2, $3, $4, $5) RETURNING id;', [userName, email, storeName, title, hashedPass])
+        // Additional Generic Details (Placeholders)
+        const profile = "https://res.cloudinary.com/artistsadmin/image/upload/v1639927280/Test-Pix/generic.png"
+        const whatsapp = "----"
+        const instagram = "----"
+
+        const response = await client.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass, profile, whatsapp, instagram) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;', [userName, email, storeName, title, hashedPass, profile, whatsapp, instagram])
 
         // Release the client finally
         client.release()
@@ -173,7 +178,7 @@ export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         const client = await dbPool.connect()
 
         // Check if the email exists
-        const emailQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [email])
+        const emailQuery = await client.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1);', [email])
 
         if (emailQuery.rows[0].exists === false ) {
             // release the client [IMPORTANT]
@@ -184,7 +189,7 @@ export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 
         // Check if the password is correct
         // Get the password hash from the DB
-        const hashQuery = await client.query('SELECT hashed_pass FROM creators WHERE email=$1', [email])
+        const hashQuery = await client.query('SELECT hashed_pass FROM creators WHERE email=$1;', [email])
         const hashedPass = hashQuery.rows[0].hashed_pass
 
         // Check it
@@ -202,7 +207,7 @@ export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         
         // Save the sessionId in the database
         const { sessionId } = req.session
-        await client.query('UPDATE creators SET session_id=$1 WHERE email=$2', [sessionId, email])
+        await client.query('UPDATE creators SET session_id=$1 WHERE email=$2;', [sessionId, email])
 
         // Release the client finally
         client.release()
@@ -255,13 +260,13 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         // Grab a client from the dbPool
         const client = await dbPool.connect()
 
-        // Get the details from the database
-        const dashQuery = await client.query('SELECT id, user_name, store_name, title, whatsapp, instagram, profile FROM creators WHERE session_id=$1', [sessionId])
+        // Get the user details from the database
+        const dashQuery = await client.query('SELECT id, user_name, store_name, title, whatsapp, instagram, profile FROM creators WHERE session_id=$1;', [sessionId])
         const data = await dashQuery.rows[0]
 
         // Get the product list
         const { store_name } = data
-        const productQuery = await client.query('SELECT id, image FROM products WHERE store_id=$1', [store_name])
+        const productQuery = await client.query('SELECT id, image FROM products WHERE store_id=$1;', [store_name])
         const productList = productQuery.rows
 
         // Finally, release the client
@@ -305,7 +310,7 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
         const { inviteEmail, invitedBy } = (req.body as InviteType)
 
         // check if the email is aleady registered
-        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1)', [inviteEmail])
+        const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1);', [inviteEmail])
 
         // if exists, return a reply
         if (emailQuery.rows[0].exists) return reply.code(400).send({ error: "user is already registered" })
@@ -366,10 +371,75 @@ export const imageHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 
         // add the url to the database
         const { sessionId } = req.session
-        await dbPool.query('UPDATE creators SET profile=$1 WHERE session_id=$2', [imageUrl, sessionId])
+        await dbPool.query('UPDATE creators SET profile=$1 WHERE session_id=$2;', [imageUrl, sessionId])
 
         return reply.code(200).send({ success: imageUrl })
 
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+}
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     EDIT-PROFILE ENDPOINT                    //
+/////////////////////////////////////////////////////////////////
+
+export const profileHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // check if authenticated
+        if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
+        
+        // the sessionId can be used identify the user
+        const { sessionId } = req.session
+
+        // req.body surgery
+        const { userName, storeName, title, whatsapp, instagram } = (req.body as ProfileType)
+
+        // Activate Pool :O
+        const client = await dbPool.connect()
+
+        // check if storeName is already taken
+        // the tricky part to avoid the current user, otherwise no updates can take place
+        // therefore, here I use the sessionId as the identifier to reduce the database queries
+        const storeQuery = await client.query('SELECT session_id FROM creators WHERE store_name=$1;', [storeName])
+
+        // if the sessionId exists and is not the same as the user
+        if (storeQuery.rows[0] && storeQuery.rows[0]['session_id'] !== sessionId) {
+
+            // release the beast
+            client.release()
+
+            return reply.code(400).send({ error: `the store-name ${storeName} is already taken` })
+        }
+     
+        // No other checks necessary (for now)
+        // Add the updated details to the database
+        const updateQuery = await client.query('UPDATE creators SET user_name=$1, store_name=$2, title=$3, whatsapp=$4, instagram=$5 WHERE session_id=$6 RETURNING *;', [userName, storeName, title, whatsapp, instagram, sessionId])
+
+        const data = updateQuery.rows[0]
+
+        // construct the return data
+        const updatedData = {
+            userName: data.user_name,
+            storeName: data.store_name,
+            title: data.title,
+            whatsapp: data.whatsapp,
+            instagram: data.instagram
+        } 
+
+        // Never forget
+        client.release()
+
+        // return the data
+        return reply.code(201).send({ success: updatedData })
+
+        
     } catch (err) {
 
         console.error(err)
