@@ -197,7 +197,7 @@ const profileSchema = Type.Object({
     userName: Type.String({ minLength: 3, maxLength: 32 }),
     storeName: Type.String({ minLength: 3, maxLength: 32 }),
     title: Type.String({ minLength: 3, maxLength: 32 }),
-    whatsapp: Type.String({ minLength: 4, maxLength: 15 }),
+    whatsapp: Type.String({ minLength: 4, maxLength: 32 }),
     instagram: Type.String({ minLength: 3, maxLength: 32 })
 })
 
