@@ -27,7 +27,8 @@ import {
     inviteHandler,
     imageHandler,
     getFileName,
-    profileHandler
+    profileHandler,
+    productHandler
     } from './handler'
 
 import { IndexSchema, 
@@ -37,7 +38,8 @@ import { IndexSchema,
     LogoutSchema,
     DashSchema,
     InviteSchema,
-    ProfileSchema
+    ProfileSchema,
+    ProductSchema
     } from './schema'
 
 // Additional Interface fixes
@@ -145,6 +147,8 @@ server.post('/image', { preHandler: upload.single('file') }, imageHandler)
 
 // Edit Profile
 server.post('/profile', ProfileSchema, profileHandler)
+
+server.post('/product', ProductSchema, productHandler)
 
 
 ///////////////////////////////////////////////

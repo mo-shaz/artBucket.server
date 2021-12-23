@@ -4,7 +4,7 @@ import mailer from "nodemailer"
 
 
 import { dbPool } from "./server"
-import { RegisterType, JoinType, LoginType, InviteType, ProfileType } from "./schema"
+import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType } from "./schema"
 
 
 ///////////////////////////////////
@@ -265,8 +265,8 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         const data = await dashQuery.rows[0]
 
         // Get the product list
-        const { store_name } = data
-        const productQuery = await client.query('SELECT id, image FROM products WHERE store_id=$1;', [store_name])
+        const { id } = data
+        const productQuery = await client.query('SELECT product_id, image FROM products WHERE store_id=$1;', [id])
         const productList = productQuery.rows
 
         // Finally, release the client
@@ -359,7 +359,7 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
 //                     IMAGE-UPLOAD ENDPOINT                    //
 /////////////////////////////////////////////////////////////////
 
-export const imageHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+export const imageHandler = async (req: ImageUploadRequest, reply: FastifyReply) => {
     
     try {
 
@@ -368,13 +368,21 @@ export const imageHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 
         // get the url of the image
         const imageUrl = req.file.path
+        const { sessionId } = req.session
 
         // add the url to the database
-        const { sessionId } = req.session
-        await dbPool.query('UPDATE creators SET profile=$1 WHERE session_id=$2;', [imageUrl, sessionId])
+        // before adding, check if it is a profile picture or a product image
+        
+        if (req.body.profileId) {
 
+            await dbPool.query('UPDATE creators SET profile=$1 WHERE session_id=$2;', [imageUrl, sessionId])
+            return reply.code(200).send({ success: imageUrl })
+
+        } 
+
+        // if it's a product image, just send back the cloudinary url
         return reply.code(200).send({ success: imageUrl })
-
+        
     } catch (err) {
 
         console.error(err)
@@ -445,4 +453,45 @@ export const profileHandler = async (req: FastifyRequest, reply: FastifyReply) =
         console.error(err)
         return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     ADD PRODUCT ENDPOINT                     //
+/////////////////////////////////////////////////////////////////
+
+export const productHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // check if authenticated
+        if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
+        const { sessionId } = req.session
+
+        // Get the body
+        const { name, description, price, image } = (req.body as ProductType)
+
+        // Get the userId from the creators table
+        const client = await dbPool.connect()
+
+        const userQuery = await client.query('SELECT id FROM creators WHERE session_id=$1;', [sessionId])
+        const { id } = userQuery.rows[0]
+
+        // Add the product into the products table
+        const addProductQuery = await client.query('INSERT INTO products(product_name, product_description, price, image, store_id) VALUES($1, $2, $3, $4, $5) RETURNING product_id, image;', [name, description, price, image, id])
+        const theAddedProduct = await addProductQuery.rows[0]
+
+        // ALWAYS, RELEASE, DO NOT FORGET
+        client.release()
+       
+        return reply.code(201).send({ success: theAddedProduct })
+
+    } catch (err) {
+        
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
 }

@@ -129,7 +129,7 @@ const dashSchema = Type.Object({
         whatsapp: Type.String({ minLenght: 8, maxLength: 15 }),
         instagram: Type.String({ minLength: 3, maxLength: 32 }),
         profile: Type.String(),
-        products: Type.Array(Type.Object({ id: Type.Number(), image: Type.String() }))
+        products: Type.Array(Type.Object({ product_id: Type.Number(), image: Type.String() }))
     }, { additionalProperties: false }) 
 }, { additionalProperties: false })
 
@@ -216,3 +216,36 @@ export const ProfileSchema = {
 
 // TypeScript Type
 export type ProfileType = Static<typeof profileSchema>
+
+
+
+///////////////////////////////////////////////////
+//                  ADD PRODUCT                 //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const productSchema = Type.Object({
+    image: Type.String({ minLength: 3, maxLength: 128 }),
+    name: Type.String({ minLength: 3, maxLength: 32 }),
+    description: Type.String({ minLength: 3, maxLength: 64 }),
+    price: Type.Number()
+})
+
+const productResponse = Type.Object({
+    success: Type.Object({ product_id: Type.Number(), image: Type.String() })
+})
+
+// Fastitfy Route Schema
+export const ProductSchema = {
+    schema: {
+        body: productSchema,
+        response: {
+            201: productResponse,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+// TypeScript Type
+export type ProductType = Static<typeof productSchema>
