@@ -4,7 +4,7 @@ import mailer from "nodemailer"
 
 
 import { dbPool } from "./server"
-import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType } from "./schema"
+import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType, ProductParamsType } from "./schema"
 
 
 ///////////////////////////////////
@@ -494,4 +494,115 @@ export const productHandler = async (req: FastifyRequest, reply: FastifyReply) =
         return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
 
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     PRODUCT DETAILS ENDPOINT                 //
+/////////////////////////////////////////////////////////////////
+
+export const productDetailsHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // the product id in the URL
+        const { productId } = (req.params as ProductParamsType)
+
+        // get a connection from the pool
+        const client = await dbPool.connect()
+
+        // get the product details from the database
+        const productQuery = await client.query('SELECT * FROM products WHERE product_id=$1;', [productId])
+        const productData = await productQuery.rows[0]
+
+        const { product_name, product_description, image, price, store_id } = productData
+
+        // get the storeName from the database
+        const storeQuery = await client.query('SELECT store_name FROM creators WHERE id=$1;', [store_id])
+        const storeData = await storeQuery.rows[0]
+
+        // construct the response object
+        const responseData = {
+            name: product_name,
+            description: product_description,
+            image: image,
+            price: price,
+            storeName: storeData['store_name']
+        }
+
+        // COME ON MAN  
+        client.release()
+
+        return reply.code(200).send({ success: responseData })
+         
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}
+
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     DELETE PRODUCT ENDPOINT                  //
+/////////////////////////////////////////////////////////////////
+
+export const deleteProductHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // check authentication
+        if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
+
+        // get the sessionId
+        const { sessionId } = req.session
+
+        // get the product id from the url params
+        const { productId } = (req.params as ProductParamsType)
+
+        // check if the product belongs to the user
+        // grab a connection
+        const client = await dbPool.connect()
+
+        // get the userId from users table
+        const userQuery = await client.query('SELECT id FROM creators WHERE session_id=$1;', [sessionId])
+        const sessionUserId = await userQuery.rows[0]['id']
+
+        // check if the products store id and the session-grabbed user id matches
+        const storeQuery = await client.query('SELECT store_id FROM products WHERE product_id=$1;', [productId])
+        const productUserId = await storeQuery.rows[0]['store_id']
+
+        // if they are not equal, return error
+        if (sessionUserId !== productUserId) {
+        
+            // close the pool and return error
+            client.release()    
+            return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
+        } 
+
+        // if alright, delete the product from database
+        const deleteQuery = await client.query('DELETE FROM products WHERE product_id=$1 RETURNING product_id;', [productId]) 
+        const deletedData = await deleteQuery.rows[0]
+
+        // construct the return data
+        const resData = {
+            productId: deletedData['product_id']
+        }
+
+        // OFCOURSE MY GUY
+        client.release()
+
+        return reply.code(200).send({ success: resData})
+
+    } catch (err) {
+        
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
 }

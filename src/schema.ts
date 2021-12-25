@@ -199,7 +199,7 @@ const profileSchema = Type.Object({
     title: Type.String({ minLength: 3, maxLength: 32 }),
     whatsapp: Type.String({ minLength: 4, maxLength: 32 }),
     instagram: Type.String({ minLength: 3, maxLength: 32 })
-})
+}, { additionalProperties: false })
 
 // Fastify Route Schema
 export const ProfileSchema = {
@@ -229,11 +229,11 @@ const productSchema = Type.Object({
     name: Type.String({ minLength: 3, maxLength: 32 }),
     description: Type.String({ minLength: 3, maxLength: 64 }),
     price: Type.Number()
-})
+}, { additionalProperties: false })
 
 const productResponse = Type.Object({
     success: Type.Object({ product_id: Type.Number(), image: Type.String() })
-})
+}, { additionalProperties: false })
 
 // Fastitfy Route Schema
 export const ProductSchema = {
@@ -249,3 +249,74 @@ export const ProductSchema = {
 
 // TypeScript Type
 export type ProductType = Static<typeof productSchema>
+
+
+
+
+///////////////////////////////////////////////////
+//                  PRODUCT DETAILS             //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const productDetailsResponse = Type.Object({
+    success: Type.Object({
+        name: Type.String({ minLength: 3, maxLength: 32 }),
+        description: Type.String({ minLength: 3, maxLength: 64 }),
+        image: Type.String({ minLength: 3, maxLength: 128 }),
+        price: Type.Number(),
+        storeName: Type.String({ minLength: 3, maxLength: 32 })
+    }) 
+}, { additionalProperties: false })
+
+// Request parameter Schema
+const productParams = Type.Object({
+    productId: Type.Number()
+}, { additionalProperties: false })
+
+// Fastify Route Schema
+export const ProductDetailsSchema = {
+    schema: {
+        params: productParams,
+        response: {
+            200: productDetailsResponse,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+// TypeScript Type
+export type ProductParamsType = Static<typeof productParams>
+
+
+
+
+
+///////////////////////////////////////////////////
+//                  DELETE PRODUCT              //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const deleteProductResponse = Type.Object({
+    success: Type.Object({
+        productId: Type.Number()
+    })
+}, { additionalProperties: false })
+
+const deleteProductParams = Type.Object({
+    productId: Type.Number()
+})
+
+// Fastify Route Schema
+export const DeleteProductSchema = {
+    schema: {
+        params: deleteProductParams,
+        response: {
+            200: deleteProductResponse,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+

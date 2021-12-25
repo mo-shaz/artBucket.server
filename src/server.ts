@@ -28,7 +28,9 @@ import {
     imageHandler,
     getFileName,
     profileHandler,
-    productHandler
+    productHandler,
+    productDetailsHandler,
+    deleteProductHandler
     } from './handler'
 
 import { IndexSchema, 
@@ -39,7 +41,9 @@ import { IndexSchema,
     DashSchema,
     InviteSchema,
     ProfileSchema,
-    ProductSchema
+    ProductSchema,
+    ProductDetailsSchema,
+    DeleteProductSchema
     } from './schema'
 
 // Additional Interface fixes
@@ -101,7 +105,7 @@ cloudinary.config({
 // CORS
 server.register(require('fastify-cors'), {
     origin: true,
-    methods: ['GET', 'POST', 'PUT'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 })
 
@@ -148,8 +152,14 @@ server.post('/image', { preHandler: upload.single('file') }, imageHandler)
 // Edit Profile
 server.post('/profile', ProfileSchema, profileHandler)
 
+// The add product end-point
 server.post('/product', ProductSchema, productHandler)
 
+// Get product details
+server.get('/product/:productId', ProductDetailsSchema, productDetailsHandler)
+
+// Delete a product
+server.delete('/product/:productId', DeleteProductSchema, deleteProductHandler)
 
 ///////////////////////////////////////////////
 //                  SERVER                  //
