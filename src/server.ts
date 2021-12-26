@@ -82,9 +82,12 @@ export const dbPool = new Pool(dbConfig)
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: "Test-Pix",
+        folder: "artBucket",
         public_id: getFileName,
-        allowed_formats: ['png', 'jpg', 'svg', 'bmp']
+        allowed_formats: ['png', 'jpg', 'svg', 'bmp'],
+        width: 300,
+        height: 300,
+        crop: "fill"
     },
 })
 

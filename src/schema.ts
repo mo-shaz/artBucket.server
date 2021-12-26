@@ -129,6 +129,7 @@ const dashSchema = Type.Object({
         whatsapp: Type.String({ minLenght: 8, maxLength: 15 }),
         instagram: Type.String({ minLength: 3, maxLength: 32 }),
         profile: Type.String(),
+        connections: Type.Number(),
         products: Type.Array(Type.Object({ product_id: Type.Number(), image: Type.String() }))
     }, { additionalProperties: false }) 
 }, { additionalProperties: false })

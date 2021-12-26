@@ -58,7 +58,14 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
 
     try {
 
-        const { userName, email, title, storeName, password, confirmPassword } = (req.body as RegisterType)
+        let { userName, email, title, storeName, password, confirmPassword } = (req.body as RegisterType)
+        
+        // trim whitespaces from start and end
+        userName = userName.trim()
+        email = email.trim()
+        title = title.trim()
+        storeName = storeName.trim()
+        password = password.trim()
 
         // Check if password and confirm-password fields match
         // Already do this on the client side, just to make sure    
@@ -146,7 +153,8 @@ export const joinHandler = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
 
         // Get the code from the request body
-        const { emailInvite } = (req.body as JoinType)
+        let { emailInvite } = (req.body as JoinType)
+        emailInvite = emailInvite.trim()
 
         // Decode the encoded invite code
         const dCode = Buffer.from(emailInvite, 'base64').toString('ascii') 
@@ -261,7 +269,7 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         const client = await dbPool.connect()
 
         // Get the user details from the database
-        const dashQuery = await client.query('SELECT id, user_name, store_name, title, whatsapp, instagram, profile FROM creators WHERE session_id=$1;', [sessionId])
+        const dashQuery = await client.query('SELECT id, user_name, store_name, title, whatsapp, instagram, profile, connections FROM creators WHERE session_id=$1;', [sessionId])
         const data = await dashQuery.rows[0]
 
         // Get the product list
@@ -281,6 +289,7 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
             whatsapp: data.whatsapp,
             instagram: data.instagram,
             profile: data.profile,
+            connections: data.connections,
             products: productList
         }
 
@@ -307,7 +316,11 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
         if (!req.session.authenticated) return reply.code(400).send({ error: "UNAUTHORIZED ACCESS" })
         
         // get the body
-        const { inviteEmail, invitedBy } = (req.body as InviteType)
+        let { inviteEmail, invitedBy } = (req.body as InviteType)
+        
+        // trim inputs
+        inviteEmail = inviteEmail.trim()
+        invitedBy = invitedBy.trim()
 
         // check if the email is aleady registered
         const emailQuery = await dbPool.query('SELECT EXISTS(SELECT 1 FROM creators WHERE email=$1);', [inviteEmail])
@@ -407,7 +420,14 @@ export const profileHandler = async (req: FastifyRequest, reply: FastifyReply) =
         const { sessionId } = req.session
 
         // req.body surgery
-        const { userName, storeName, title, whatsapp, instagram } = (req.body as ProfileType)
+        let { userName, storeName, title, whatsapp, instagram } = (req.body as ProfileType)
+
+        // trim the inputs
+        userName = userName.trim()
+        storeName = storeName.trim()
+        title = title.trim()
+        whatsapp = whatsapp.trim()
+        instagram = instagram.trim()
 
         // Activate Pool :O
         const client = await dbPool.connect()
@@ -471,7 +491,12 @@ export const productHandler = async (req: FastifyRequest, reply: FastifyReply) =
         const { sessionId } = req.session
 
         // Get the body
-        const { name, description, price, image } = (req.body as ProductType)
+        let { name, description, price, image } = (req.body as ProductType)
+
+        // trim inputs
+        name = name.trim()
+        description = description.trim()
+        image = image.trim()
 
         // Get the userId from the creators table
         const client = await dbPool.connect()
