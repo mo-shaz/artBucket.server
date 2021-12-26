@@ -631,3 +631,46 @@ export const deleteProductHandler = async (req: FastifyRequest, reply: FastifyRe
         return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
 }
+
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     DELETE PROFILE ENDPOINT                  //
+/////////////////////////////////////////////////////////////////
+
+export const deleteProfileHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    
+    try {
+
+        // check authentication
+        if (!req.session.authenticated) return reply.code(500).send({ error: "UNAUTHORIZED ACCESS" })
+        const { sessionId } = req.session
+
+        // First delete the products which he has
+        // Pool time
+        const client = await dbPool.connect()
+
+        // For that, we need the storeId
+        const userQuery = await client.query('SELECT id FROM creators WHERE session_id=$1;', [sessionId])
+        const userId = await userQuery.rows[0]['id']
+
+        // Now delete all the products
+        await client.query('DELETE FROM products WHERE store_id=$1 RETURNING product_id;', [userId])
+
+        // Finally, delete the user from the creators table
+        await client.query('DELETE FROM creators WHERE id=$1 RETURNING store_name;', [userId])
+
+        // CLOSE THE POOL
+        client.release()
+
+        return reply.code(200).send({ success: "GoodBye Artist" })
+
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}

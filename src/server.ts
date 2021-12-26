@@ -30,7 +30,8 @@ import {
     profileHandler,
     productHandler,
     productDetailsHandler,
-    deleteProductHandler
+    deleteProductHandler,
+    deleteProfileHandler
     } from './handler'
 
 import { IndexSchema, 
@@ -43,7 +44,8 @@ import { IndexSchema,
     ProfileSchema,
     ProductSchema,
     ProductDetailsSchema,
-    DeleteProductSchema
+    DeleteProductSchema,
+    DeleteProfileSchema
     } from './schema'
 
 // Additional Interface fixes
@@ -154,6 +156,9 @@ server.post('/image', { preHandler: upload.single('file') }, imageHandler)
 
 // Edit Profile
 server.post('/profile', ProfileSchema, profileHandler)
+
+// Delete Profile
+server.delete('/profile', DeleteProfileSchema, deleteProfileHandler)
 
 // The add product end-point
 server.post('/product', ProductSchema, productHandler)

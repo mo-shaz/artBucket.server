@@ -24,7 +24,7 @@ const naySchema = Type.Object({
 const registerSchema = Type.Object({
 	userName: Type.String({ minLength: 4, maxLength: 32 }),
 	email: Type.String({ format: 'email' }),
-	title: Type.Optional(Type.String({  maxLenght: 32 })),
+	title: Type.String({  maxLenght: 32 }),
 	storeName: Type.String({ minLength: 4, maxLenght: 32 }),
 	password: Type.String({ minLenght: 8, maxLength: 32 }),
 	confirmPassword: Type.String({ minLenght: 8, maxLength: 32 })
@@ -321,3 +321,18 @@ export const DeleteProductSchema = {
 }
 
 
+
+
+///////////////////////////////////////////////////
+//                  DELETE PROFILE              //
+/////////////////////////////////////////////////
+
+export const DeleteProfileSchema = {
+    schema: {
+        response: {
+            200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
