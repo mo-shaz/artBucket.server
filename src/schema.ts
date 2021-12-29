@@ -24,7 +24,7 @@ const naySchema = Type.Object({
 const registerSchema = Type.Object({
 	userName: Type.String({ minLength: 4, maxLength: 32 }),
 	email: Type.String({ format: 'email' }),
-	title: Type.String({  maxLenght: 32 }),
+	title: Type.String({ minLength:3, maxLenght: 32 }),
 	storeName: Type.String({ minLength: 4, maxLenght: 32 }),
 	password: Type.String({ minLenght: 8, maxLength: 32 }),
 	confirmPassword: Type.String({ minLenght: 8, maxLength: 32 })
@@ -104,11 +104,19 @@ export type LoginType = Static<typeof loginSchema>
 //                      INDEX                     // 
 ///////////////////////////////////////////////////
 
+// TypeBox Schema
+const indexResponseSchema = Type.Object({
+    success: Type.Object({
+        creatorCount: Type.Number(),
+        productCount: Type.Number()
+    })
+})
+
 // Fastify Schema
 export const IndexSchema = {
     schema: {
         response: {
-            200: yaySchema,
+            200: indexResponseSchema,
             400: naySchema,
             500: naySchema
         }
@@ -124,8 +132,8 @@ const dashSchema = Type.Object({
     success: Type.Object({
         id: Type.Number(),
         userName: Type.String({ minLength: 3, maxLenght: 32 }),
-        storeName: Type.String({ minLength:3, maxLength: 32 }),
-        title: Type.Optional(Type.String({ maxLength: 32 })),
+        storeName: Type.String({ minLength: 3, maxLength: 32 }),
+        title: Type.String({ minLength: 3, maxLength: 32 }),
         whatsapp: Type.String({ minLenght: 8, maxLength: 15 }),
         instagram: Type.String({ minLength: 3, maxLength: 32 }),
         profile: Type.String(),
@@ -262,10 +270,14 @@ export type ProductType = Static<typeof productSchema>
 const productDetailsResponse = Type.Object({
     success: Type.Object({
         name: Type.String({ minLength: 3, maxLength: 32 }),
-        description: Type.String({ minLength: 3, maxLength: 64 }),
+        description: Type.String({ minLength: 3, maxLength: 128 }),
         image: Type.String({ minLength: 3, maxLength: 128 }),
         price: Type.Number(),
-        storeName: Type.String({ minLength: 3, maxLength: 32 })
+        storeDetails: Type.Object({
+            name: Type.String({ minLength: 3, maxLength: 32 }),
+            instagram: Type.String({ minLength: 3, maxLength: 32 }),
+            whatsapp: Type.String({ minLength: 3, maxLength: 32 })
+        })
     }) 
 }, { additionalProperties: false })
 
@@ -331,6 +343,64 @@ export const DeleteProfileSchema = {
     schema: {
         response: {
             200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+
+
+
+///////////////////////////////////////////////////
+//                  GET PRODUCTS                //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const getProductsResponse = Type.Object({
+    success: Type.Array(Type.Object({
+        product_id: Type.Number(),
+        image: Type.String({ minLength: 3, maxLength: 128 }),
+        product_name: Type.String({ minLength: 3, maxLength: 32 }),
+        product_description: Type.String({ minLength: 3, maxLength: 128 }),
+        price: Type.Number()
+    }))
+})
+
+// Fastify Route Schema
+export const MarketSchema = {
+    schema: {
+        response: {
+            200: getProductsResponse,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+} 
+
+
+
+
+///////////////////////////////////////////////////
+//                  GET CREATORS                //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const creatorsResponseSchema = Type.Object({
+    success: Type.Array(Type.Object({
+        id: Type.Number(),
+        user_name: Type.String({ minLength: 3, maxLength: 32 }),
+        title: Type.String({ minLength: 3, maxLength: 32 }),
+        store_name: Type.String({ minLength: 3, maxLength: 32 }),
+        profile: Type.String({ minLength: 3, maxLength:128 })
+    }))
+})
+
+// Fastify Route Schema
+export const CreatorsSchema = {
+    schema: {
+        response: {
+            200: creatorsResponseSchema,
             400: naySchema,
             500: naySchema
         }

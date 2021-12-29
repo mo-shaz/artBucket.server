@@ -1,6 +1,7 @@
 import {FastifyReply, FastifyRequest} from "fastify"
 import bcrypt from "bcrypt"
 import mailer from "nodemailer"
+import cloudinary from "cloudinary"
 
 
 import { dbPool } from "./server"
@@ -45,10 +46,30 @@ export const getFileName = async (req: ImageUploadRequest) => {
         return 'aCuriousGuy'
     }
 
-
     return fileName
-    
 }
+
+// Function that gets the cloudinary public_id from the image url
+const getPublicId = (str: string): string => {
+
+    // split the url 
+    const splitString = str.split('/')
+    const theLength = splitString.length
+
+    // get rid of the file extension
+    const fullFileName = splitString[theLength-1]
+    const fileNameSplit = fullFileName.split('.')
+    const fileName = fileNameSplit[0]
+
+    // the folderName ofcourse
+    const folderName = splitString[theLength-2]
+
+    // construct the publicId
+    const publicId = `${folderName}/${fileName}`
+
+    return publicId
+}
+
 
 ///////////////////////////////////////////////////////////////
 //                      REGISTER A USER                     //
@@ -99,11 +120,14 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         const hashedPass = await bcrypt.hash(password, 10)
 
         // Additional Generic Details (Placeholders)
-        const profile = "https://res.cloudinary.com/artistsadmin/image/upload/v1639927280/Test-Pix/generic.png"
+        const profile = "https://res.cloudinary.com/artistsadmin/image/upload/v1640628397/generic-profile.png"
         const whatsapp = "----"
         const instagram = "----"
 
         const response = await client.query('INSERT INTO creators(user_name, email, store_name, title, hashed_pass, profile, whatsapp, instagram) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;', [userName, email, storeName, title, hashedPass, profile, whatsapp, instagram])
+
+        // Also update the admin table for creatorCount
+        await client.query('UPDATE admin SET count=count+1 WHERE table_name=$1;', ["creator_table"])
 
         // Release the client finally
         client.release()
@@ -130,10 +154,20 @@ export const indexHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         // Sacred Rituals
         req = req
 
-        // Get the number of rows of the database
-        const countQuery = await dbPool.query('SELECT COUNT(*) FROM creators;')
-        const count = countQuery.rows[0].count.toString()
-        return reply.code(200).send({ success: count })
+        // Get the number of creators and products from the admin table
+        const creatorCountQuery = await dbPool.query('SELECT count FROM admin WHERE table_name=$1;', ["creator_table"])
+        const productCountQuery = await dbPool.query('SELECT count FROM admin WHERE table_name=$1;', ["product_table"])
+
+        const creatorCount = await creatorCountQuery.rows[0]['count']
+        const productCount = await productCountQuery.rows[0]['count']
+
+        // construct the response object
+        const resData = {
+            creatorCount: creatorCount,
+            productCount: productCount
+        }
+
+        return reply.code(200).send({ success: resData })
         
         
     } catch (err) {
@@ -508,6 +542,9 @@ export const productHandler = async (req: FastifyRequest, reply: FastifyReply) =
         const addProductQuery = await client.query('INSERT INTO products(product_name, product_description, price, image, store_id) VALUES($1, $2, $3, $4, $5) RETURNING product_id, image;', [name, description, price, image, id])
         const theAddedProduct = await addProductQuery.rows[0]
 
+        // Also update the admin table for productCount
+        await client.query('UPDATE admin SET count=count+1 WHERE table_name=$1;', ["product_table"])
+
         // ALWAYS, RELEASE, DO NOT FORGET
         client.release()
        
@@ -545,8 +582,15 @@ export const productDetailsHandler = async (req: FastifyRequest, reply: FastifyR
         const { product_name, product_description, image, price, store_id } = productData
 
         // get the storeName from the database
-        const storeQuery = await client.query('SELECT store_name FROM creators WHERE id=$1;', [store_id])
+        const storeQuery = await client.query('SELECT store_name, whatsapp, instagram FROM creators WHERE id=$1;', [store_id])
         const storeData = await storeQuery.rows[0]
+
+        // the storeData
+        const storeDetails = {
+            name: storeData['store_name'],
+            instagram: storeData['instagram'],
+            whatsapp: storeData['whatsapp']
+        }
 
         // construct the response object
         const responseData = {
@@ -554,7 +598,7 @@ export const productDetailsHandler = async (req: FastifyRequest, reply: FastifyR
             description: product_description,
             image: image,
             price: price,
-            storeName: storeData['store_name']
+            storeDetails: storeDetails
         }
 
         // COME ON MAN  
@@ -612,13 +656,26 @@ export const deleteProductHandler = async (req: FastifyRequest, reply: FastifyRe
         } 
 
         // if alright, delete the product from database
-        const deleteQuery = await client.query('DELETE FROM products WHERE product_id=$1 RETURNING product_id;', [productId]) 
+        const deleteQuery = await client.query('DELETE FROM products WHERE product_id=$1 RETURNING product_id, image;', [productId]) 
         const deletedData = await deleteQuery.rows[0]
+        const imageUrl = await deleteQuery.rows[0]['image']
+
+        // delete the image from cloudinary
+        // for that we need to extract the public id from the imageUrl
+        const publicId =  getPublicId(imageUrl)
+
+        cloudinary.v2.uploader.destroy(publicId, (error: any, result: any) => {
+            if (error) return console.error("IMAGE DESTROY ERROR", error)
+            return console.log("IMAGE DESTROY SUCCESS", result)
+        })
 
         // construct the return data
         const resData = {
             productId: deletedData['product_id']
         }
+
+        // Also update the admin table for productCount
+        await client.query('UPDATE admin SET count=count-1 WHERE table_name=$1;', ["product_table"])
 
         // OFCOURSE MY GUY
         client.release()
@@ -657,16 +714,97 @@ export const deleteProfileHandler = async (req: FastifyRequest, reply: FastifyRe
         const userId = await userQuery.rows[0]['id']
 
         // Now delete all the products
-        await client.query('DELETE FROM products WHERE store_id=$1 RETURNING product_id;', [userId])
+        const deleteProductsQuery = await client.query('DELETE FROM products WHERE store_id=$1 RETURNING product_id, image;', [userId])
+        const deletedProducts = deleteProductsQuery.rows
+
+        // Also update the admin table for productCount
+        const deletedCount = deletedProducts.length
+        await client.query('UPDATE admin SET count=count-$1 WHERE table_name=$2;', [deletedCount, "product_table"])
+
+        // Now delete the images of the products, for that ...
+        // extract the public_id's of images from the returned array
+        const publicIds = []
+
+        const theLength = deletedProducts.length
+        for (let i = 0; i < theLength; i++) {
+            
+            // get the imageUrl from the object
+            const imageUrl = deletedProducts[i]['image']
+            const publicId = getPublicId(imageUrl)
+
+            // push the id to the id's array
+            publicIds.push(publicId)
+
+        }
+
+        // Now call the Cloudinary Admin API
+        cloudinary.v2.api.delete_resources(publicIds, (error: any, result: any) => {
+            if (error) return console.error("BULK DELETE FAILED", error)
+            return console.log("BULK DELETE SUCCESS", result)
+        })
 
         // Finally, delete the user from the creators table
         await client.query('DELETE FROM creators WHERE id=$1 RETURNING store_name;', [userId])
+
+        // Also update the admin table for creatorCount
+        await client.query('UPDATE admin SET count=count-1 WHERE table_name=$1;', ["creator_table"])
 
         // CLOSE THE POOL
         client.release()
 
         return reply.code(200).send({ success: "GoodBye Artist" })
 
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}
+
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                       GET PRODUCTS ENDPOINT                  //
+/////////////////////////////////////////////////////////////////
+
+export const marketHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // get all the products from the database
+        const productsQuery = await dbPool.query('SELECT product_id, product_name, product_description, image, price FROM products;')
+        const productsArray = productsQuery.rows
+
+        return reply.code(200).send({ success: productsArray })
+        
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                       GET CREATORS ENDPOINT                  //
+/////////////////////////////////////////////////////////////////
+
+export const creatorsHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+        
+        // Get all the creators from the database
+        const creatorsQuery = await dbPool.query('SELECT id, user_name, title, store_name, profile FROM creators;')
+        const creatorsArray = creatorsQuery.rows
+
+        return reply.code(200).send({ success: creatorsArray })
+        
     } catch (err) {
 
         console.error(err)

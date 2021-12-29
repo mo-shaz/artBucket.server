@@ -31,7 +31,9 @@ import {
     productHandler,
     productDetailsHandler,
     deleteProductHandler,
-    deleteProfileHandler
+    deleteProfileHandler,
+    marketHandler,
+    creatorsHandler
     } from './handler'
 
 import { IndexSchema, 
@@ -45,7 +47,9 @@ import { IndexSchema,
     ProductSchema,
     ProductDetailsSchema,
     DeleteProductSchema,
-    DeleteProfileSchema
+    DeleteProfileSchema,
+    MarketSchema,
+    CreatorsSchema
     } from './schema'
 
 // Additional Interface fixes
@@ -168,6 +172,12 @@ server.get('/product/:productId', ProductDetailsSchema, productDetailsHandler)
 
 // Delete a product
 server.delete('/product/:productId', DeleteProductSchema, deleteProductHandler)
+
+// MarketPlace products
+server.get('/market', MarketSchema, marketHandler)
+
+// MarketPlace creators
+server.get('/creators', CreatorsSchema, creatorsHandler)
 
 ///////////////////////////////////////////////
 //                  SERVER                  //
