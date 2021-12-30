@@ -5,7 +5,7 @@ import cloudinary from "cloudinary"
 
 
 import { dbPool } from "./server"
-import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType, ProductParamsType, StoreParamsType } from "./schema"
+import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType, ProductParamsType, StoreParamsType, ConnectParamsType } from "./schema"
 
 
 ///////////////////////////////////
@@ -579,6 +579,9 @@ export const productDetailsHandler = async (req: FastifyRequest, reply: FastifyR
         const productQuery = await client.query('SELECT * FROM products WHERE product_id=$1;', [productId])
         const productData = await productQuery.rows[0]
 
+        // If the store does not exits, return a 400
+        if (!productData) return reply.code(400).send({ error: "BAD REQUEST" })
+
         const { product_name, product_description, image, price, store_id } = productData
 
         // get the storeName from the database
@@ -834,11 +837,14 @@ export const storeHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         const storeQuery = await client.query('SELECT id, user_name, title, profile, whatsapp, instagram FROM creators WHERE store_name=$1;', [storeName])
         const storeData = await storeQuery.rows[0]
 
+        // If the store does not exits, return a 400
+        if (!storeData) return reply.code(400).send({ error: "BAD REQUEST" })
+
         const storeId = storeData['id']
 
         // get the products
         const productsQuery = await client.query('SELECT product_id, image FROM products WHERE store_id=$1;', [storeId])
-        const productsArray = await productsQuery.rows
+        const productsArray = productsQuery.rows
 
         // construct the response data
         const resData = {
@@ -856,6 +862,34 @@ export const storeHandler = async (req: FastifyRequest, reply: FastifyReply) => 
 
         // send the data
         return reply.code(200).send({ success: resData })
+        
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                     CONNECTIONS INCREMENTER                  //
+/////////////////////////////////////////////////////////////////
+
+export const connectHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // get the query parameter
+        const { storeName } = (req.params as ConnectParamsType)
+
+        // Increment the connections column of the creator
+        await dbPool.query('UPDATE creators SET connections=connections+1 WHERE store_name=$1;', [storeName])
+
+        // Finally return a success
+        return reply.code(200).send({ success: "+1 connection" })
         
     } catch (err) {
 

@@ -445,3 +445,30 @@ export const StoreSchema = {
 
 // TypeScript Type
 export type StoreParamsType = Static<typeof storeParams>
+
+
+
+
+///////////////////////////////////////////////////
+//                CONNECTS COUNT                //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const connectParams = Type.Object({
+    storeName: Type.String({ minLength: 3, maxLength: 32 })
+}, { additionalProperties: false })
+
+// Fastify Route Schema
+export const ConnectSchema = {
+    schema: {
+        params: connectParams,
+        response: {
+            200: yaySchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+// TypeScript Type
+export type ConnectParamsType = Static<typeof connectParams>

@@ -35,7 +35,8 @@ import {
     deleteProfileHandler,
     marketHandler,
     creatorsHandler,
-    storeHandler
+    storeHandler,
+    connectHandler
     } from './handler'
 
 import { IndexSchema, 
@@ -52,7 +53,8 @@ import { IndexSchema,
     DeleteProfileSchema,
     MarketSchema,
     CreatorsSchema,
-    StoreSchema
+    StoreSchema,
+    ConnectSchema
     } from './schema'
 
 // Additional Interface fixes
@@ -184,6 +186,9 @@ server.get('/creators', CreatorsSchema, creatorsHandler)
 
 // MarketPlace Creator/Store Details
 server.get('/store/:storeName', StoreSchema, storeHandler)
+
+// Increment the connections
+server.get('/connects/:storeName', ConnectSchema, connectHandler)
 
 
 ///////////////////////////////////////////////
