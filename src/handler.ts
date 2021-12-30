@@ -5,7 +5,7 @@ import cloudinary from "cloudinary"
 
 
 import { dbPool } from "./server"
-import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType, ProductParamsType } from "./schema"
+import { RegisterType, JoinType, LoginType, InviteType, ProfileType, ProductType, ProductParamsType, StoreParamsType } from "./schema"
 
 
 ///////////////////////////////////
@@ -804,6 +804,58 @@ export const creatorsHandler = async (req: FastifyRequest, reply: FastifyReply) 
         const creatorsArray = creatorsQuery.rows
 
         return reply.code(200).send({ success: creatorsArray })
+        
+    } catch (err) {
+
+        console.error(err)
+        return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
+    }
+
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////
+//                      STORE DETAILS ENDPOINT                  //
+/////////////////////////////////////////////////////////////////
+
+export const storeHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    try {
+
+        // get the query param
+        const { storeName } = (req.params as StoreParamsType)
+
+        // let's db
+        const client = await dbPool.connect()
+
+        // get the store details
+        const storeQuery = await client.query('SELECT id, user_name, title, profile, whatsapp, instagram FROM creators WHERE store_name=$1;', [storeName])
+        const storeData = await storeQuery.rows[0]
+
+        const storeId = storeData['id']
+
+        // get the products
+        const productsQuery = await client.query('SELECT product_id, image FROM products WHERE store_id=$1;', [storeId])
+        const productsArray = await productsQuery.rows
+
+        // construct the response data
+        const resData = {
+            storeName: storeName,
+            userName: storeData['user_name'],
+            title: storeData['title'],
+            profile: storeData['profile'],
+            whatsapp: storeData['whatsapp'],
+            instagram: storeData['instagram'],
+            products: productsArray
+        }
+
+        // FOR THE LOVE OF GOD, DO NOT FORGET THIS
+        client.release()
+
+        // send the data
+        return reply.code(200).send({ success: resData })
         
     } catch (err) {
 

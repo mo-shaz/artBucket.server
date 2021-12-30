@@ -236,7 +236,7 @@ export type ProfileType = Static<typeof profileSchema>
 const productSchema = Type.Object({
     image: Type.String({ minLength: 3, maxLength: 128 }),
     name: Type.String({ minLength: 3, maxLength: 32 }),
-    description: Type.String({ minLength: 3, maxLength: 64 }),
+    description: Type.String({ minLength: 3, maxLength: 128 }),
     price: Type.Number()
 }, { additionalProperties: false })
 
@@ -365,7 +365,7 @@ const getProductsResponse = Type.Object({
         product_description: Type.String({ minLength: 3, maxLength: 128 }),
         price: Type.Number()
     }))
-})
+}, { additionalProperties: false })
 
 // Fastify Route Schema
 export const MarketSchema = {
@@ -394,7 +394,7 @@ const creatorsResponseSchema = Type.Object({
         store_name: Type.String({ minLength: 3, maxLength: 32 }),
         profile: Type.String({ minLength: 3, maxLength:128 })
     }))
-})
+}, { additionalProperties: false })
 
 // Fastify Route Schema
 export const CreatorsSchema = {
@@ -406,3 +406,42 @@ export const CreatorsSchema = {
         }
     }
 }
+
+
+
+
+///////////////////////////////////////////////////
+//                    GET STORE                 //
+/////////////////////////////////////////////////
+
+// TypeBox Schema
+const storeResponseSchema = Type.Object({
+    success: Type.Object({
+        userName: Type.String({ minLength: 3, maxLength: 32 }),
+        storeName: Type.String({ minLength: 3, maxLength: 32 }),
+        title: Type.String({ minLength: 3, maxLength: 32 }),
+        profile: Type.String({ minLength: 3, maxLength: 128 }),
+        whatsapp: Type.String({ minLength: 8, maxLength: 15 }),
+        instagram: Type.String({ minLength: 3, maxLength: 32 }),
+        products: Type.Array(Type.Object({ product_id: Type.Number(), image: Type.String({ minLength:3, maxLength: 128 })}))
+    })
+}, { additionalProperties: false })
+
+const storeParams = Type.Object({
+    storeName: Type.String({ minLength: 3, maxLength: 32 })
+}, { additionalProperties: false })
+
+// Fastify Route Schema
+export const StoreSchema = {
+    schema: {
+        params: storeParams,
+        response: {
+            200: storeResponseSchema,
+            400: naySchema,
+            500: naySchema
+        }
+    }
+}
+
+// TypeScript Type
+export type StoreParamsType = Static<typeof storeParams>

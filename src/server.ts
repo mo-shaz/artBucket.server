@@ -1,5 +1,6 @@
-// Dotenv config
-require('dotenv').config()
+// Dotenv config (only in dev)
+
+if(!process.env.PRODUCTION) require('dotenv').config()
 
 ///////////////////////////////////////////////
 //              MODULE IMPORTS              //
@@ -33,7 +34,8 @@ import {
     deleteProductHandler,
     deleteProfileHandler,
     marketHandler,
-    creatorsHandler
+    creatorsHandler,
+    storeHandler
     } from './handler'
 
 import { IndexSchema, 
@@ -49,7 +51,8 @@ import { IndexSchema,
     DeleteProductSchema,
     DeleteProfileSchema,
     MarketSchema,
-    CreatorsSchema
+    CreatorsSchema,
+    StoreSchema
     } from './schema'
 
 // Additional Interface fixes
@@ -178,6 +181,10 @@ server.get('/market', MarketSchema, marketHandler)
 
 // MarketPlace creators
 server.get('/creators', CreatorsSchema, creatorsHandler)
+
+// MarketPlace Creator/Store Details
+server.get('/store/:storeName', StoreSchema, storeHandler)
+
 
 ///////////////////////////////////////////////
 //                  SERVER                  //
