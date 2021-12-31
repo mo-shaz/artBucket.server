@@ -1,5 +1,4 @@
 // Dotenv config (only in dev)
-
 if(!process.env.PRODUCTION) require('dotenv').config()
 
 ///////////////////////////////////////////////
@@ -203,8 +202,10 @@ server.get('/connects/:storeName', ConnectSchema, connectHandler)
 //                  SERVER                  //
 /////////////////////////////////////////////
 
+const PORT = (process.env.PORT as unknown) as number
+
 const startServer = async () => {
-    server.listen(process.env.PORT || 8080, (err, address) => {
+    server.listen(PORT, '0.0.0.0', (err, address) => {
         if (err) {
 
             console.error(err)
