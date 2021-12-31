@@ -306,6 +306,10 @@ export const dashHandler = async (req: FastifyRequest, reply: FastifyReply) => {
         const dashQuery = await client.query('SELECT id, user_name, store_name, title, whatsapp, instagram, profile, connections FROM creators WHERE session_id=$1;', [sessionId])
         const data = await dashQuery.rows[0]
 
+        // check if the query returns an empty array. why?
+        // when a user tries to login with two devices without logging out, an error is thrown
+        if (!data) return reply.code(400).send({ error: "BAD REQUEST" })
+
         // Get the product list
         const { id } = data
         const productQuery = await client.query('SELECT product_id, image FROM products WHERE store_id=$1;', [id])
