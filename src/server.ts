@@ -136,7 +136,7 @@ server.register(cookie)
 server.register(session, {
     cookieName: 'sessionId',
     secret: (process.env.SESSION_SECRET as string),
-    cookie: { secure: "auto", maxAge: 604800000, httpOnly: true}
+    cookie: { secure: "auto", maxAge: 604800000, httpOnly: true, sameSite: "none"}
 })
 
 // MULTER
