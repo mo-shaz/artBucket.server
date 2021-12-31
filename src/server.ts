@@ -74,23 +74,23 @@ const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = fastify
     }
 })
 
-// // Database Config
-// const dbConfig = {
-//     host: process.env.DB_HOST,
-//     user: process.env.DB_USER,
-//     port: (process.env.DB_PORT as unknown) as number,
-//     password: process.env.DB_PW,
-//     database: process.env.DB_NAME,
-//     idleTimeoutMillis: 10000,
-//     connectionTimeoutMillis: 10000
-// }
-
-// Heroku Postgres config
+// Database Config
 const dbConfig = {
-    uri: process.env.DATABASE_URL,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    port: (process.env.DB_PORT as unknown) as number,
+    password: process.env.DB_PW,
+    database: process.env.DB_NAME,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 10000
 }
+
+// // Heroku Postgres config
+// const dbConfig = {
+//     uri: process.env.DATABASE_URL,
+//     idleTimeoutMillis: 10000,
+//     connectionTimeoutMillis: 10000
+// }
 
 // Database Connection Pool
 export const dbPool = new Pool(dbConfig)

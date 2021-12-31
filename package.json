@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/server.js",
   "engines": {
-      "node": "17.2.0"
+    "node": "17.2.0"
   },
   "scripts": {
     "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
@@ -29,7 +29,8 @@
     "fastify-multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.7.2",
-    "pg": "^8.7.1"
+    "pg": "^8.7.1",
+    "pg-connection-string": "^2.5.0"
   },
   "devDependencies": {
     "@types/node": "^16.11.6",
