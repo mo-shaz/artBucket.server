@@ -90,7 +90,7 @@ const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = fastify
 const dbConfig = process.env.DATABASE_URL
 
 // Database Connection Pool
-export const dbPool = new Pool(dbConfig)
+export const dbPool = new Pool((dbConfig as unknown) as string)
 
 // Cloudinary-Storage Config
 const storage = new CloudinaryStorage({
