@@ -255,7 +255,7 @@ export const loginHandler = async (req: FastifyRequest, reply: FastifyReply) => 
         client.release()
 
         // Send a success reply
-        return reply.send({ success: "login successful" })
+        return reply.code(200).send({ success: "login successful" })
 
     } catch (err) {
 
