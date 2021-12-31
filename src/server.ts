@@ -161,6 +161,7 @@ server.get('/dashboard', DashSchema, dashHandler)
 server.post('/invite', InviteSchema, inviteHandler)
 
 // Image Uploads
+// @ts-ignore
 server.post('/image', { preHandler: upload.single('file') }, imageHandler)
 
 // Edit Profile
