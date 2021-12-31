@@ -87,10 +87,14 @@ const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = fastify
 // }
 
 // Heroku Postgres config
-const dbConfig = process.env.DATABASE_URL
+const dbConfig = {
+    uri: process.env.DATABASE_URL,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 10000
+}
 
 // Database Connection Pool
-export const dbPool = new Pool((dbConfig as unknown) as string)
+export const dbPool = new Pool(dbConfig)
 
 // Cloudinary-Storage Config
 const storage = new CloudinaryStorage({
