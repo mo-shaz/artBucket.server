@@ -81,7 +81,7 @@ const dbConfig = {
     port: (process.env.DB_PORT as unknown) as number,
     password: process.env.DB_PW,
     database: process.env.DB_NAME,
-    ssl: true,
+    ssl: { rejectUnauthorized: false },
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 10000
 }
