@@ -477,6 +477,9 @@ export const profileHandler = async (req: FastifyRequest, reply: FastifyReply) =
         whatsapp = whatsapp.trim()
         instagram = instagram.trim()
 
+        // make storeName lowercase
+        storeName = storeName.toLowerCase()
+
         // Activate Pool :O
         const client = await dbPool.connect()
 
