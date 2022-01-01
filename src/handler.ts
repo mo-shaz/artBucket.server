@@ -1,7 +1,7 @@
 import {FastifyReply, FastifyRequest} from "fastify"
 import bcrypt from "bcrypt"
-import mailer from "nodemailer"
 import cloudinary from "cloudinary"
+import mailjet from "node-mailjet"
 
 
 import { dbPool } from "./server"
@@ -367,32 +367,40 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
         if (emailQuery.rows[0].exists) return reply.code(400).send({ error: "user is already registered" })
 
         // Now send the invite e-mail 
-        // NodeMailer transport
-        const transporter = mailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.MAILER_USER,
-                pass: process.env.MAILER_PASS
-            }
-        })
+        // Initialize MailJet Connection 
+        const connection = mailjet.connect(
+            (process.env.MJ_PUB_KEY as unknown) as string,
+            (process.env.MJ_PRIV_KEY as unknown) as string
+        )
 
         // Generate an ivite code (I just encode the email in base64 :p)
         const code = Buffer.from(`${inviteEmail}`).toString('base64') 
 
-        // The email-text to be send
-        const theMessage = `Hello ${inviteEmail}, you got an invite from ${invitedBy} to join artBucket.com. Use this code: ${code} to create an account. Have fun.`
+        // The MailJet API request
+        const mailJetReq = connection.post('send', { version: 'v3.1' }).request({
+            messages: [
+                {
+                    From: {
+                        Email: "artistsaroundyou@gmail.com",
+                        Name: "admin@artBucket"
+                    },
+                    To: [{
+                        Email: inviteEmail,
+                        Name: "New Artist"
+                    }],
+                    Subject: "artBucket Invite",
+                    Variables: {
+                        artist: invitedBy,
+                        code: code
+                    },
+                    TemplateID: 3466540,
+                    TemplateLanguage: true
+                }
+            ]
+        })
 
-        // The whole mail
-        const theMail = {
-            from: process.env.MAILER_USER,
-            to: inviteEmail,
-            subject: 'artBucket invite',
-            text: theMessage
-        }
-
-        // Send the mail
-        const responseFromMailServer = await transporter.sendMail(theMail)
-        console.log(responseFromMailServer.response)
+        const mailJetResponse = await mailJetReq
+        console.log(mailJetResponse)
 
         // if everything checks out, send confirmation back
         return reply.code(200).send({ success: "invite send successfully" })
