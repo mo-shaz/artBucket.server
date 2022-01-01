@@ -88,6 +88,9 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         storeName = storeName.trim()
         password = password.trim()
 
+        // make the storeName lower-case
+        storeName = storeName.toLowerCase()
+
         // Check if password and confirm-password fields match
         // Already do this on the client side, just to make sure    
         if (password !== confirmPassword) return reply.code(400).send({ error: 'Passwords do not match' })
@@ -399,15 +402,14 @@ export const inviteHandler = async (req: FastifyRequest, reply: FastifyReply) =>
             ]
         })
 
-        const mailJetResponse = await mailJetReq
-        console.log(mailJetResponse)
+        // make the request
+        await mailJetReq
 
         // if everything checks out, send confirmation back
         return reply.code(200).send({ success: "invite send successfully" })
 
     } catch (err) {
 
-        console.log(err)
         return reply.code(500).send({ error: "INTERNAL SERVER ERROR" })
     }
 }
