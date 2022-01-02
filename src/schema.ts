@@ -52,7 +52,7 @@ export type RegisterType = Static<typeof registerSchema>
 
 // TypeBox Schema
 const joinSchema = Type.Object({
-    emailInvite: Type.String({ minLength: 4, maxLength: 32 })
+    emailInvite: Type.String({ minLength: 4, maxLength: 64 })
 }, { additionalProperties: false })
 
 // Fastify Route Schema
