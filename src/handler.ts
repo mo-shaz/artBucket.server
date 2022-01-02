@@ -88,8 +88,9 @@ export const registerHandler = async (req: FastifyRequest, reply: FastifyReply) 
         storeName = storeName.trim()
         password = password.trim()
 
-        // make the storeName lower-case
+        // make the storeName and email lower-case
         storeName = storeName.toLowerCase()
+        email = email.toLowerCase()
 
         // Check if password and confirm-password fields match
         // Already do this on the client side, just to make sure    
