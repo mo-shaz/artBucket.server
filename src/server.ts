@@ -76,11 +76,7 @@ const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = fastify
 
 // Database Config
 const dbConfig = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    port: (process.env.DB_PORT as unknown) as number,
-    password: process.env.DB_PW,
-    database: process.env.DB_NAME,
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 10000
