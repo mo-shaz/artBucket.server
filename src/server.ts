@@ -128,7 +128,7 @@ server.register(cookie)
 server.register(session, {
     cookieName: 'sessionId',
     secret: (process.env.SESSION_SECRET as string),
-    cookie: { secure: "auto", maxAge: 604800000, httpOnly: true, sameSite: "none"}
+    cookie: { secure: false, maxAge: 604800000, httpOnly: true, sameSite: "lax"}
 })
 
 // MULTER
@@ -195,10 +195,9 @@ server.get('/connects/:storeName', ConnectSchema, connectHandler)
 //                  SERVER                  //
 /////////////////////////////////////////////
 
-const PORT = (process.env.PORT as unknown) as number
-
+const PORT = 8080 
 const startServer = async () => {
-    server.listen(PORT, '0.0.0.0', (err, address) => {
+    server.listen(PORT, (err, address) => {
         if (err) {
 
             console.error(err)
