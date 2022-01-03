@@ -82,13 +82,6 @@ const dbConfig = {
     connectionTimeoutMillis: 10000
 }
 
-// // Heroku Postgres config
-// const dbConfig = {
-//     uri: process.env.DATABASE_URL,
-//     idleTimeoutMillis: 10000,
-//     connectionTimeoutMillis: 10000
-// }
-
 // Database Connection Pool
 export const dbPool = new Pool(dbConfig)
 
